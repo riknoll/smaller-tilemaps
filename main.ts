@@ -9,12 +9,25 @@ namespace micromaps {
         One = 0
     }
 
+    let transparencies: Image[] = [];
+    let others: Image[] = [];
+
     //% block="create tilemap $tileSize width $width height $height"
     export function createTilemap(tileSize: TileSize, width: number, height: number) {
-        const buf = control.createBuffer(width * height);
+        if (!transparencies[tileSize]) {
+            transparencies[tileSize] = image.create(1 << tileSize, 1 << tileSize)
+            others[tileSize] = image.create(1 << tileSize, 1 << tileSize);
+            others[tileSize].fill(15);
+        }
+
+        const buf = control.createBuffer(width * height + 2);
+        buf.fill(1);
+        buf.setNumber(NumberFormat.UInt32LE, 0, width);
+        buf.setNumber(NumberFormat.UInt32LE, 2, height);
         const t = tiles.createTilemap(buf, image.create(width, height), [
-            image.create(1 << tileSize, 1 << tileSize)
+            transparencies[tileSize], others[tileSize]
         ], tileSize as number)
+        
         tiles.setTilemap(t);
     }
 
@@ -25,11 +38,15 @@ namespace micromaps {
      * @param tile
      * @param handler
      */
-    //% group="Tiles"
     //% weight=100 draggableParameters="reporter" blockGap=8
     //% block="on $sprite of kind $kind=spritekind overlaps $tileSize transparency at $location"
-    //% help=tiles/on-overlap-tile
     export function onOverlapTile(kind: number, tileSize: TileSize, handler: (sprite: Sprite, location: tiles.Location) => void) {
-        scene.onOverlapTile(kind, image.create(1 << tileSize, 1 << tileSize), handler);
+        if (!transparencies[tileSize]) {
+            transparencies[tileSize] = image.create(1 << tileSize, 1 << tileSize)
+            others[tileSize] = image.create(1 << tileSize, 1 << tileSize);
+            others[tileSize].fill(15);
+        }
+        
+        scene.onOverlapTile(kind, others[tileSize], handler);
     }
 }
